@@ -343,4 +343,7 @@ pom.xml에 아래 설정 추가
 
 
 
-#
+## Azure DevOps를 이용한 CI/CD는 아래 문서 참고
+
+[Azure DevOps를 이용한 CI/CD](devops.md)
+
