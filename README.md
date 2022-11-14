@@ -2,7 +2,7 @@
 
 ## 참고
 
-본 README는 강사의 주도에 따라 진행될 수 있도록 구성되었습니다. Self pace로 진행하기에 충분하지 않을 수 있습니다.
+본 README는 강사의 주도에 따라 진행될 수 있도록 구성됨. 따라서 Self pace로 진행하기에 충분하지 않을 수 있음. 
 
 ## 필요도구
 
@@ -10,13 +10,15 @@
 * Github 계정 (or Azure DevOps 계정)
 * Azure 계정 및 구독
 * kubectl
-* helm 
+* helm
 * mvn
 
 ## 목표 아키텍처
 
-마이크로서비스로 구성된 Spring Petclinic 앱을 배포하기 위해 Non-prod 클러스터 환경을 구성합니다.
-Non-prod 환경은 개발계과 스테이지계로 구성되어 있습니다.
+![architecture](./docs/targetarchitecture.png)
+
+* 본 프로젝트의 목표는 마이크로서비스로 구성된 Spring Petclinic 앱을 배포하기 위해 Non-prod 클러스터 환경을 구성하는 것임.
+* Non-prod 환경은 개발계과 스테이지계로 구성되어 있으며 개발계는 Kubernetes Object를 최대한 활용하고 스테이지계는 Azure PaaS를 최대한 활용함. 
 
 | 구분    | 개발계                         | 스테이지계 |
 | ---------- | ------------------------------- | ----|
@@ -29,7 +31,10 @@ Non-prod 환경은 개발계과 스테이지계로 구성되어 있습니다.
 
 ## Infrastructure Provisioning
 
-설정을 쉽게 보기 위해 **Azure Portal** 에서 작업수행
+* 본 실습은 설정을 쉽게 확인하고 쉬운 사용성을 확인하기 위해 **Azure Portal** 에서 작업수행
+
+> [!NOTE]
+> 실제 구축 시 `bicap` 디렉토리의 IaC코드 활용
 
 1. Azure Kubernetes Service 생성
    * Dev/Test
@@ -61,8 +66,7 @@ Non-prod 환경은 개발계과 스테이지계로 구성되어 있습니다.
 ## 샘플 앱 배포
 
 * <Kubernetes resources> > Create > Create a starter application
-
-* 샘플앱 살표보기
+* 샘플앱 살펴보기
 
 ```sh
 kubectl run busybox -i --tty --image=busybox --restart=Never --rm -- sh
@@ -74,9 +78,7 @@ kubectl get po -o yaml
 
 ## Spring Petclinic Microservice 코드
 
-* Configmap으로 Spring Config 주입
-* mvn spring-boot:build-image 로 이미지 빌드가능
-* 각 MSA마다 Dockerfile을 만들어서 빌드 가능
+* 마이크로서비스로 분리, 각 서비스는 REST API로 통신, `api-gateway`가 Frontend 역할 및 API중재.
 
 ## 앱 빌드 패키징
 
@@ -97,17 +99,6 @@ cd spring-petclinic-api-gateway && docker build -t ${REPOSITORY_PREFIX}/spring-p
 export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
 mvn spring-boot:build-image -DREPOSITORY_PREFIX=${REPOSITORY_PREFIX} -DskipTests
 ```  
-
-## 이미지 배포
-
-```bash
-az acr login --name <your-regtistry>
-
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-customers-service:latest
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-vets-service:latest
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-visits-service:latest
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-api-gateway:latest
-```
 
 ## Kuberentes Context 설정
 
@@ -198,9 +189,23 @@ kubectl create secret docker-registry regcred \
 > [!NOTE]
 > 위 구문에  `> ./manifests/init-namespace/02-regcreds.yaml` 를 추가하여 yaml로 만들어 놓을 수 있음.
 
+## 컨테이너 레지스트리에 이미지 배포
+
+```bash
+
+export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
+az acr login --name <your-regtistry>
+
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-customers-service:latest
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-vets-service:latest
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-visits-service:latest
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-api-gateway:latest
+```
+
 ### Helm Chart 샘플 생성
 
 ```sh
+cd charts
 helm create spring-petclinic
 ```
 
@@ -210,20 +215,29 @@ helm create spring-petclinic
 
 ### `charts` 디렉토리 분석
 
+```sh
+helm template petclinic-dev charts/petclinic --namespace spring-petclinic 
+```
+
 ### Helm Chart로 앱 배포
 
 ```sh
 # helm upgrade --install <릴리즈명> <차트>
-helm upgrade --install petclinic-release charts/petclinic
+helm upgrade --install petclinic-release charts/petclinic --namespace spring-petclinic
 ```
 
 ## API 테스트
 
-`test.http` 파일로 API테스트
+* [`test.http`](./test.http) 파일로 API테스트.
+
+> [!NOTE]
+> VSCode의 REST Client Extension을 사용하면 편함
+
+* 클러스터 내 DNS로 API테스트 수행
 
 ```sh
 kubectl run curl --rm -i --tty --image=curlimages/curl:7.73.0 -- sh
-	# curl http://customers-service.spring-petclinic.svc.cluster.local:8080/owners
+$ curl http://customers-service.spring-petclinic.svc.cluster.local:8080/owners
 ```
 
 ## 스테이지계 환경 구성
@@ -238,7 +252,7 @@ kubectl create namespace spring-petclinic-stage
 
 * Azure Portal에서 `flexible db`로 생성
 
-`service_instance_db` DB생성. `Admin username`과 `Password`는 별도 메모필요.
+`service_instance_db` DB생성. `Admin username`과 `Password`는 별도 메모 필요.
 
 * `service-instance-db` DB 생성
 
@@ -325,13 +339,15 @@ az aks update -n $aks -g $rg --enable-managed-identity
 
 ### Secret 저장
 
-```sh
-az keyvault secret set --vault-name <your-keyvault> --name mysql-url --value "jdbc:mysqlql://<your-mysql-name>.mysql.database.azure.com/petclinic?sslmode=verify-full&&sslfactory=org.mysqlql.ssl.SingleCertValidatingFactory&sslfactoryarg=classpath:BaltimoreCyberTrustRoot.crt.pem"
+* KeyVault에 아래와 같이 secret을 저장함
 
+```sh
 az keyvault secret set --vault-name <your-keyvault> --name mysql-user --value <user>@<your-mysql-name>
 
 az keyvault secret set --vault-name <your-keyvault> --name mysql-pass --value <password>
 ```
+
+* [`secret-provider-class.yaml`](charts/petclinic/templates/secret-provider-class.yaml) 파일을 수정
 
 ```yaml
 (생략)
@@ -361,7 +377,10 @@ tenantId: "<your-tenant-id>"
 
 * 생성된 `SecretProviderClass`를 `Volume`으로 Mount. 이 항목은 value.yaml에서 정의할 수 있음. 이 프로젝트는 스테이지계만 KeyVault를 사용하므로 `values-stage.yaml`에 정의함.
 
-* Volume, Volume Mount
+* Volume, Volume Mount 설정 (values-stage.yaml)
+
+```yaml
+(생략)
 
 ```yaml
 ...
@@ -378,20 +397,21 @@ tenantId: "<your-tenant-id>"
     readOnly: true
 ```
 
-* 환경변수
+* DB암호 환경변수 설정 (values-stage.yaml)
   
 ```yaml
-  env  
-    - name: SPRING_DATASOURCE_USERNAME
-      valueFrom:
-        secretKeyRef:
-          name: dbsecret
-          key: mysql-user
-    - name: SPRING_DATASOURCE_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: dbsecret
-          key: mysql-pass  
+...
+env  
+  - name: SPRING_DATASOURCE_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: dbsecret
+        key: mysql-user
+  - name: SPRING_DATASOURCE_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: dbsecret
+        key: mysql-pass  
 ```
 
 ### Application Gateway 생성
@@ -401,9 +421,9 @@ tenantId: "<your-tenant-id>"
 ### Ingress 생성
 
 * 스테이지 환경만 Ingress생성 및 Application Gateway 연결
-* `deployment`에 `ingress`용 `annotations`인 `kubernetes.io/ingress.class: azure/application-gateway` 추가
+* `deployment`에 `ingress`용 `annotations`인 `kubernetes.io/ingress.class: azure/application-gateway` 추가 (values-stage.yaml)
 
-```yaml
+```yaml 
 api-gateway:
   env:
   - name: SPRING_PROFILES_ACTIVE         
@@ -460,9 +480,8 @@ spring:
 > 가장 나중에 선언된 선언 값이 우선순위가 높고 Overriding됨.
 > 빈 값으로 선언하지 않도록 주의!
 
+`# helm upgrade --install <릴리즈명> <차트> <환경별 구성정보> <리전별 구성정보> ...<...구성정보`
 ```sh
-# helm upgrade --install <릴리즈명> <차트> <환경별 구성정보>
-
 ns spring-petclinic-stage
 helm upgrade --install petclinic-stage charts/petclinic -f charts/petclinic/values-stage.yaml
 ```
