@@ -52,20 +52,19 @@
 > https://azure.github.io/AKS-Construction/?deploy.deployItemKey=deployArmCli
 > 
 > 혹은
-> 
-> ```sh
-> az deployment group create -g <your-resource-group>  --template-uri https://github.com/Azure/AKS-Construction/releases/download/0.9.0/main.json --parameters \
-> resourceName=spring-cluster \
-> upgradeChannel=stable \
-> agentCountMax=20 \
-> omsagent=true \
-> retentionInDays=30 
-> 
-> ```
+
+```sh
+ az deployment group create -g <your-resource-group>  --template-uri https://github.com/Azure/AKS-Construction/releases/download/0.9.0/main.json --parameters \
+ resourceName=spring-cluster \
+ upgradeChannel=stable \
+ agentCountMax=20 \
+ omsagent=true \
+ retentionInDays=30 
+```
 
 ## 샘플 앱 배포
 
-* <Kubernetes resources> > Create > Create a starter application
+* `<Kubernetes resources>` > Create > Create a starter application
 * 샘플앱 살펴보기
 
 ```sh
@@ -261,7 +260,7 @@ az mysql flexible-server db create --resource-group <your-resource-group> --serv
 
 ```
 
-* Portal에서 <your-mysql> > Settings > Connect > Coneect from your app > JDBC용 URL 참고
+* Portal에서 `<your-mysql>` > Settings > Connect > Coneect from your app > JDBC용 URL 참고
 
 > [!IMPORTANT]
 > mySQL서비스와 SSL통신을 하기 위해 인증서를 지정해야 함. `sslmode=verify-full&&sslfactory=org.mysqlql.ssl.SingleCertValidatingFactory&sslfactoryarg=classpath:BaltimoreCyberTrustRoot.crt.pem` 커넥션 스트링이 필요하고 `BaltimoreCyberTrustRoot.crt.pem`는 각 마이크로서비스 별 `src/main/resources`에 있음.
@@ -468,7 +467,7 @@ spring:
           - connection-string: "<your-appconfigration-connection-string>"
 ```
 
-### Stage용 value file생성
+### 완성된 Stage용 value file 확인
 
 [values-stage.yaml](./charts/petclinic/values-stage.yaml)
 
@@ -481,11 +480,11 @@ spring:
 > 빈 값으로 선언하지 않도록 주의!
 
 `# helm upgrade --install <릴리즈명> <차트> <환경별 구성정보> <리전별 구성정보> ...<...구성정보`
+
 ```sh
 ns spring-petclinic-stage
-helm upgrade --install petclinic-stage charts/petclinic -f charts/petclinic/values-stage.yaml
+helm upgrade --install petclinic-stage charts/petclinic -f charts/petclinic/values-stage.yaml --namespace spring-petclinic-stage
 ```
-
 
 ## Azure DevOps를 이용한 CI/CD는 별도 프로젝트 참고
 
