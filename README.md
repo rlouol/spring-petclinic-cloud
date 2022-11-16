@@ -41,6 +41,7 @@ alias nsv='kubectl config view | grep namespace:'
 * 본 실습은 설정을 쉽게 확인하고 쉬운 사용성을 확인하기 위해 **Azure Portal** 에서 작업수행
 
 > [!NOTE]
+> 
 > 실제 구축 시 [`bicap`](./bicep) 디렉토리의 IaC코드 활용
 > 혹은
 > AKS Constructor Helper로 Provisioning 자동화 가능
@@ -199,6 +200,7 @@ kubectl create secret docker-registry regcred \
 
 * `regcred`이름으로 imagePullSecret을 사용
 > [!NOTE]
+> 
 > 위 구문에  `> ./manifests/init-namespace/02-regcreds.yaml` 를 추가하여 yaml로 만들어 놓을 수 있음.
 
 ## 컨테이너 레지스트리에 이미지 배포
@@ -267,7 +269,7 @@ kubectl create namespace spring-petclinic-stage
 
 * Azure Portal에서 `flexible db`로 생성
 
-`service_instance_db` DB생성. `Admin username`과 `Password`는 별도 메모 필요.
+  * `service_instance_db` DB생성. `Admin username`과 `Password`는 별도 메모 필요.
 
 * `service-instance-db` DB 생성
 
@@ -279,6 +281,7 @@ az mysql flexible-server db create --resource-group <your-resource-group> --serv
 * Portal에서 `<your-mysql>` > Settings > Connect > Coneect from your app > JDBC용 URL 참고
 
 > [!IMPORTANT]
+> 
 > mySQL서비스와 SSL통신을 하기 위해 인증서를 지정해야 함. `sslmode=verify-full&&sslfactory=org.mysqlql.ssl.SingleCertValidatingFactory&sslfactoryarg=classpath:BaltimoreCyberTrustRoot.crt.pem` 커넥션 스트링이 필요하고 `BaltimoreCyberTrustRoot.crt.pem`는 각 마이크로서비스 별 `src/main/resources`에 있음.
 
 ### Application Insights
@@ -492,6 +495,7 @@ spring:
 `helm upgrade --install <릴리즈명> <차트> <환경별 구성정보>`
 
 > [!IMPORTANT]
+> 
 > 가장 나중에 선언된 선언 값이 우선순위가 높고 Overriding됨.
 > 빈 값으로 선언하지 않도록 주의!
 
