@@ -1,9 +1,5 @@
 # Spring Microservice Petclinic on AKS
 
-## 참고
-
-본 README는 강사의 주도에 따라 진행될 수 있도록 구성됨. 따라서 Self pace로 진행하기에 충분하지 않을 수 있음. 
-
 ## 필요도구
 
 * git
@@ -49,7 +45,7 @@
     ```
 
 > [!NOTE]
-> 
+>
 > 실제 구축 시 [`bicap`](./bicep) 디렉토리의 IaC코드 활용
 > 혹은
 > AKS Constructor Helper로 Provisioning 자동화 가능
@@ -203,8 +199,9 @@ kubectl create secret docker-registry regcred \
 ```
 
 * `regcred`이름으로 imagePullSecret을 사용
+
 > [!NOTE]
-> 
+>
 > 위 구문에  `> ./manifests/init-namespace/02-regcreds.yaml` 를 추가하여 yaml로 만들어 놓을 수 있음.
 
 ### Helm Chart 샘플 생성
@@ -215,7 +212,7 @@ helm create spring-petclinic
 ```
 
 > [!NOTE]
-> 
+>
 > [draft](https://learn.microsoft.com/ko-kr/azure/aks/draft) 도구를 사용하여 자동으로 생성할 수 있음
 > [Helm Library Chart](https://helm.sh/docs/topics/library_charts/)를 사용하여 쉽게 공통화를 쉽게 하고 개발자가 쉽게 끌어쓸수 있음
 > Helm Guide는 [여기](https://github.com/HakjunMIN/azure-petclinic/blob/main/helm-library-guide.md)를 참고
@@ -263,7 +260,7 @@ helm upgrade --install petclinic-release charts/petclinic --namespace spring-pet
 * [`test.http`](./test.http) 파일로 API테스트.
 
 > [!NOTE]
-> 
+>
 > VSCode의 [REST Client Extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) 추천
 
 * 클러스터 내 DNS로 API테스트 수행
@@ -297,8 +294,8 @@ az mysql flexible-server db create --resource-group <your-resource-group> --serv
 * Portal에서 `<your-mysql>` > Settings > Connect > Coneect from your app > JDBC용 URL 참고
 
 > [!IMPORTANT]
-> 
-> mySQL서비스와 SSL통신을 하기 위해 인증서를 지정해야 함. 
+>
+> mySQL서비스와 SSL통신을 하기 위해 인증서를 지정해야 함.
 > 커넥션 스트링에서 인증서를 다음과 같이 지정함.
 > `sslmode=verify-full&&sslfactory=org.mysqlql.ssl.SingleCertValidatingFactory&sslfactoryarg=classpath:BaltimoreCyberTrustRoot.crt.pem` 
 > `BaltimoreCyberTrustRoot.crt.pem`는 각 마이크로서비스 별 `src/main/resources`에 있음.
@@ -388,7 +385,7 @@ az keyvault secret set --vault-name <your-keyvault> --name mysql-pass --value <p
 
 ### Secret Driver Class 구성을 위한 yaml추가
 
-#### Secret Driver Class Manifest 파일 [secretproviderclass](charts/petclinic/templates/secret-provider-class.yaml) 수정.
+#### Secret Driver Class Manifest 파일 [secretproviderclass](charts/petclinic/templates/secret-provider-class.yaml) 수정
 
 * `userAssignedIdentityID`에 위 Managed ID의 `clientId`를 입력
 * `tenantID`: 계정의 TenantID 입력
@@ -438,7 +435,6 @@ spec:
           objectVersion: "" 
     tenantId: "<your-tenant-id>"
 ```  
-
 
 * 생성된 `SecretProviderClass`를 `Volume`으로 Mount. 이 항목은 values.yaml에서 정의할 수 있음. 이 프로젝트는 스테이지계만 KeyVault를 사용하므로 `values-stage.yaml`에 정의함.
 
@@ -539,12 +535,11 @@ spring:
 
 ### Helm Chart로 스테이지용 앱 배포
 
-`helm upgrade --install <릴리즈명> <차트> -f <환경별 구성정보>`
-
 > [!IMPORTANT]
-> 
+>
 > 가장 나중에 선언된 선언 값이 우선순위가 높고 Overriding됨.
 > 빈 값으로 선언하지 않도록 주의!
+>
 > `helm upgrade --install <릴리즈명> <차트> -f <환경별 구성정보> -f <리전별 구성정보> ...-f <구성정보>`
 
 ```sh
