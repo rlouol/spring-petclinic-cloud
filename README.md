@@ -291,7 +291,7 @@ az mysql flexible-server db create --resource-group <your-resource-group> --serv
 
 ```
 
-* Portal에서 `<your-mysql>` > Settings > Connect > Coneect from your app > JDBC용 URL 참고
+* Portal에서 `<your-mysql>` > Settings > Connect > Connect from your app > JDBC용 URL 참고
 
 > [!IMPORTANT]
 >
@@ -343,12 +343,7 @@ public class VetsServiceApplication {
 
 ## Azure KeyVault
 
-* KeyVault의 Secret을 사용하기 위해 [Kubernetes CSI(Container Storage Interface)](https://kubernetes-csi.github.io/docs/)를 사용함
-* AKS에서 CSI와 Managed ID를 활성화 시킴
-
-### Azure KeyVault 생성
-
-* 리전, 이름, Standard Tier로 나머지는 디폴트 설정으로 생성
+* AKS에서 Secret Store CSI Driver와 Managed ID를 활성화 시킴
 
 ```bash
 export aks=<your-cluster>
@@ -356,6 +351,10 @@ export rg=<your-resource-group>
 az aks enable-addons -a azure-keyvault-secrets-provider -n $aks -g $rg
 az aks update -n $aks -g $rg --enable-managed-identity
 ```
+
+### Azure KeyVault 생성
+
+* 리전, 이름, Standard Tier로 나머지는 디폴트 설정으로 생성
 
 * 클러스터에 `--enable-managed-identity`를 활성화하면 아래와 같이 objectId (Managed ID)를 얻을 수 있음.
   
@@ -404,8 +403,6 @@ spec:
   provider: azure
   secretObjects:                             
   - data:
-    - key: mysql-url                          
-      objectName: mysql-url     
     - key: mysql-user                          
       objectName: mysql-user
     - key: mysql-pass                          
@@ -421,10 +418,6 @@ spec:
     cloudName: ""
     objects:  |
       array:
-        - |
-          objectName: mysql-url
-          objectType: secret                     
-          objectVersion: ""                    
         - |
           objectName: mysql-user
           objectType: secret
