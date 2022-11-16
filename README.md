@@ -12,13 +12,20 @@
 * kubectl
 * helm
 * mvn
+* bash 설정
+  
+```bash
+alias k='kubectl'
+alias ns='kubectl config set-context $(kubectl config current-context) --namespace'
+alias nsv='kubectl config view | grep namespace:'
+```
 
 ## 목표 아키텍처
 
 ![architecture](./docs/targetarchitecture.png)
 
 * 본 프로젝트의 목표는 마이크로서비스로 구성된 Spring Petclinic 앱을 배포하기 위해 Non-prod 클러스터 환경을 구성하는 것임.
-* Non-prod 환경은 개발계과 스테이지계로 구성되어 있으며 개발계는 Kubernetes Object를 최대한 활용하고 스테이지계는 Azure PaaS를 최대한 활용함. 
+* Non-prod 환경은 개발계과 스테이지계로 구성되어 있으며 개발계는 Kubernetes Object를 최대한 활용하고 스테이지계는 Azure PaaS를 최대한 활용함.
 
 | 구분    | 개발계                         | 스테이지계 |
 | ---------- | ------------------------------- | ----|
@@ -34,7 +41,21 @@
 * 본 실습은 설정을 쉽게 확인하고 쉬운 사용성을 확인하기 위해 **Azure Portal** 에서 작업수행
 
 > [!NOTE]
-> 실제 구축 시 `bicap` 디렉토리의 IaC코드 활용
+> 실제 구축 시 [`bicap`](./bicep) 디렉토리의 IaC코드 활용
+> 혹은
+> AKS Constructor Helper로 Provisioning 자동화 가능
+> https://azure.github.io/AKS-Construction/?deploy.deployItemKey=deployArmCli
+>
+> 혹은
+
+```sh
+ az deployment group create -g <your-resource-group>  --template-uri https://github.com/Azure/AKS-Construction/releases/download/0.9.0/main.json --parameters \
+ resourceName=spring-cluster \
+ upgradeChannel=stable \
+ agentCountMax=20 \
+ omsagent=true \
+ retentionInDays=30 
+```
 
 1. Azure Kubernetes Service 생성
    * Dev/Test
@@ -47,20 +68,11 @@
 
 4. Azure KeyVault생성
 
+5. App Configuration 생성
 
-> [!NOTE] * AKS Constructor Helper로 Provisioning 자동화 가능
-> https://azure.github.io/AKS-Construction/?deploy.deployItemKey=deployArmCli
-> 
-> 혹은
+6. Application Insight 생성
 
-```sh
- az deployment group create -g <your-resource-group>  --template-uri https://github.com/Azure/AKS-Construction/releases/download/0.9.0/main.json --parameters \
- resourceName=spring-cluster \
- upgradeChannel=stable \
- agentCountMax=20 \
- omsagent=true \
- retentionInDays=30 
-```
+### 3~6은 스테이지 환경을 위한 리소스
 
 ## 샘플 앱 배포
 
@@ -92,7 +104,7 @@ cd spring-petclinic-api-gateway && docker build -t ${REPOSITORY_PREFIX}/spring-p
 
 ```
 
-혹은 (시간 많이 걸림)
+혹은 `spring-boot:build-image` goal 사용
   
 ```bash
 export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
@@ -115,7 +127,7 @@ kubectl get nodes
 kubectl create namespace spring-petclinic
 ```
 
-### OSS mySQL DB 설치 (StatefulSet)
+### OSS mySQL DB StatefulSet로 설치
 
 ```sh
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -145,8 +157,8 @@ Helm Chart내 Template에 정의되어 있음. (설명 필요)
 # ACR_NAME: The name of your Azure Container Registry
 # SERVICE_PRINCIPAL_NAME: Must be unique within your AD tenant
 
-export containerRegistry=spreg
-export servicePrincipal=spregsp
+export containerRegistry=<your-registry>
+export servicePrincipal=<your-registry>-sp
 
 ACR_NAME=$containerRegistry
 SERVICE_PRINCIPAL_NAME=$servicePrincipal
@@ -185,6 +197,7 @@ kubectl create secret docker-registry regcred \
 
 ```
 
+* `regcred`이름으로 imagePullSecret을 사용
 > [!NOTE]
 > 위 구문에  `> ./manifests/init-namespace/02-regcreds.yaml` 를 추가하여 yaml로 만들어 놓을 수 있음.
 
@@ -209,8 +222,10 @@ helm create spring-petclinic
 ```
 
 > [!NOTE]
+> 
 > [draft](https://learn.microsoft.com/ko-kr/azure/aks/draft) 도구를 사용하여 자동으로 생성할 수 있음
 > [Helm Library Chart](https://helm.sh/docs/topics/library_charts/)를 사용하여 쉽게 공통화를 쉽게 하고 개발자가 쉽게 끌어쓸수 있음
+> Helm Guide는 [여기](https://github.com/HakjunMIN/azure-petclinic/blob/main/helm-library-guide.md)를 참고
 
 ### `charts` 디렉토리 분석
 
@@ -230,7 +245,8 @@ helm upgrade --install petclinic-release charts/petclinic --namespace spring-pet
 * [`test.http`](./test.http) 파일로 API테스트.
 
 > [!NOTE]
-> VSCode의 REST Client Extension을 사용하면 편함
+> 
+> VSCode의 [REST Client Extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) 추천
 
 * 클러스터 내 DNS로 API테스트 수행
 
