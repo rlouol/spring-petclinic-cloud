@@ -14,11 +14,11 @@
 * mvn
 * bash 설정
   
-```bash
-alias k='kubectl'
-alias ns='kubectl config set-context $(kubectl config current-context) --namespace'
-alias nsv='kubectl config view | grep namespace:'
-```
+  ```bash
+  alias k='kubectl'
+  alias ns='kubectl config set-context $(kubectl config current-context) --namespace'
+  alias nsv='kubectl config view | grep namespace:'
+  ```
 
 ## 목표 아키텍처
 
@@ -79,13 +79,13 @@ kubectl get nodes
 * `<Kubernetes resources>` > Create > Create a starter application
 * 샘플앱 살펴보기
 
-```sh
-kubectl run busybox -i --tty --image=busybox --restart=Never --rm -- sh
-kubectl run curl --rm -i --tty --image=curlimages/curl -- sh
-kubectl logs <pod>
-kubectl describe po <pod>
-kubectl get po -o yaml
-```
+  ```sh
+  kubectl run busybox -i --tty --image=busybox --restart=Never --rm -- sh
+  kubectl run curl --rm -i --tty --image=curlimages/curl -- sh
+  kubectl logs <pod>
+  kubectl describe po <pod>
+  kubectl get po -o yaml
+  ```
 
 ## Spring Petclinic Microservice 코드
 
@@ -109,7 +109,21 @@ cd spring-petclinic-api-gateway && docker build -t ${REPOSITORY_PREFIX}/spring-p
 ```bash
 export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
 mvn spring-boot:build-image -DREPOSITORY_PREFIX=${REPOSITORY_PREFIX} -DskipTests
-```  
+```
+
+## 컨테이너 레지스트리에 이미지 배포
+
+```bash
+
+export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
+az acr login --name <your-regtistry>
+
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-customers-service:latest
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-vets-service:latest
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-visits-service:latest
+docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-api-gateway:latest
+```
+
 ## 개발계 구성
 
 ### 네임스페이스 생성
@@ -192,19 +206,6 @@ kubectl create secret docker-registry regcred \
 > [!NOTE]
 > 
 > 위 구문에  `> ./manifests/init-namespace/02-regcreds.yaml` 를 추가하여 yaml로 만들어 놓을 수 있음.
-
-## 컨테이너 레지스트리에 이미지 배포
-
-```bash
-
-export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
-az acr login --name <your-regtistry>
-
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-customers-service:latest
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-vets-service:latest
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-visits-service:latest
-docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-api-gateway:latest
-```
 
 ### Helm Chart 샘플 생성
 
