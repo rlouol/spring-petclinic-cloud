@@ -40,6 +40,14 @@ alias nsv='kubectl config view | grep namespace:'
 
 * 본 실습은 설정을 쉽게 확인하고 쉬운 사용성을 확인하기 위해 **Azure Portal** 에서 작업수행
 
+* Azure Kubernetes Service 생성
+  * Dev/Test
+  * ACR 생성 후 Attach가능
+
+    ```bash
+      az aks update -n <your-cluster> -g <your-resource-group> --attach-acr <acr-name>
+    ```
+
 > [!NOTE]
 > 
 > 실제 구축 시 [`bicap`](./bicep) 디렉토리의 IaC코드 활용
@@ -58,22 +66,13 @@ alias nsv='kubectl config view | grep namespace:'
  retentionInDays=30 
 ```
 
-1. Azure Kubernetes Service 생성
-   * Dev/Test
-   * ACR 생성 후 Attach가능
-2. Azure Container Registry 생성
+## Kuberentes Context 설정
 
-3. Azure Database for mySQL
-   * Flexible
-   * SSL
-
-4. Azure KeyVault생성
-
-5. App Configuration 생성
-
-6. Application Insight 생성
-
-### 3~6은 스테이지 환경을 위한 리소스
+```sh
+az login 
+az aks get-credentials --resource-group <your-resource-group> --name <your-cluster>
+kubectl get nodes
+```
 
 ## 샘플 앱 배포
 
@@ -111,15 +110,6 @@ cd spring-petclinic-api-gateway && docker build -t ${REPOSITORY_PREFIX}/spring-p
 export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
 mvn spring-boot:build-image -DREPOSITORY_PREFIX=${REPOSITORY_PREFIX} -DskipTests
 ```  
-
-## Kuberentes Context 설정
-
-```sh
-az login 
-az aks get-credentials --resource-group gmkt-rg --name spr-cluster
-kubectl get nodes
-```
-
 ## 개발계 구성
 
 ### 네임스페이스 생성
@@ -147,7 +137,7 @@ Helm Chart내 Template에 정의되어 있음. (설명 필요)
 ### (선택)Container Registry Service Principal 생성
 
 * 외부 ACR을 연결할때만 필요, AKS와 Attach했으면 필요없음.
-
+  
 > [!NOTE]
 
 ```bash
@@ -235,6 +225,31 @@ helm create spring-petclinic
 helm template petclinic-dev charts/petclinic --namespace spring-petclinic 
 ```
 
+### values.yaml 내 이미지정보 수정
+
+```yaml
+vets:
+  image:
+    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-vets-service
+    tag: latest
+ 
+customers:
+  image:
+    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-customers-service
+    tag: latest 
+
+visits:
+  image:
+    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-visits-service
+    tag: latest
+
+api-gateway:
+  image:
+    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-api-gateway
+    tag: latest
+...
+```  
+
 ### Helm Chart로 앱 배포
 
 ```sh
@@ -282,7 +297,10 @@ az mysql flexible-server db create --resource-group <your-resource-group> --serv
 
 > [!IMPORTANT]
 > 
-> mySQL서비스와 SSL통신을 하기 위해 인증서를 지정해야 함. `sslmode=verify-full&&sslfactory=org.mysqlql.ssl.SingleCertValidatingFactory&sslfactoryarg=classpath:BaltimoreCyberTrustRoot.crt.pem` 커넥션 스트링이 필요하고 `BaltimoreCyberTrustRoot.crt.pem`는 각 마이크로서비스 별 `src/main/resources`에 있음.
+> mySQL서비스와 SSL통신을 하기 위해 인증서를 지정해야 함. 
+> 커넥션 스트링에서 인증서를 다음과 같이 지정함.
+> `sslmode=verify-full&&sslfactory=org.mysqlql.ssl.SingleCertValidatingFactory&sslfactoryarg=classpath:BaltimoreCyberTrustRoot.crt.pem` 
+> `BaltimoreCyberTrustRoot.crt.pem`는 각 마이크로서비스 별 `src/main/resources`에 있음.
 
 ### Application Insights
 
@@ -312,20 +330,27 @@ public class VetsServiceApplication {
             SpringApplication.run(VetsServiceApplication.class, args);
       }
 }
+```
 
 * `Deployment` 환경 변수에 `APPINSIGHTS_INSTRUMENTATIONKEY` 설정
 
-```yaml
+  * `values-stage.yaml`에 아래 설정 추가
 
-env:
-  - name: APPINSIGHTS_INSTRUMENTATIONKEY
-    value: <your-instrumentation-key>
-```
+  ```yaml
+
+  env:
+    - name: APPINSIGHTS_INSTRUMENTATIONKEY
+      value: <your-instrumentation-key>
+  ```
 
 ## Azure KeyVault
 
 * KeyVault의 Secret을 사용하기 위해 [Kubernetes CSI(Container Storage Interface)](https://kubernetes-csi.github.io/docs/)를 사용함
 * AKS에서 CSI와 Managed ID를 활성화 시킴
+
+### Azure KeyVault 생성
+
+* 리전, 이름, Standard Tier로 나머지는 디폴트 설정으로 생성
 
 ```bash
 export aks=<your-cluster>
@@ -350,57 +375,77 @@ az aks update -n $aks -g $rg --enable-managed-identity
   az keyvault set-policy -n <your-keyvault> --secret-permissions get --object-id 668c37cb-ee54-44bf-bc42-03e420240b5d
 ```
 
-* CSI Manifest 파일 [secretproviderclass](charts/petclinic/templates/secret-provider-class.yaml)을 수정.
-* `userAssignedIdentityID`에 위 Managed ID의 `clientId`를 입력
-* `tenantID`: 계정의 TenantID 입력
-* `az account list` 로 확인
-
-### Secret 저장
+### mySQL 계정/비밀번호 `secret`으로 저장
 
 * KeyVault에 아래와 같이 secret을 저장함
 
 ```sh
-az keyvault secret set --vault-name <your-keyvault> --name mysql-user --value <user>@<your-mysql-name>
+az keyvault secret set --vault-name <your-keyvault> --name mysql-user --value <user>
 
 az keyvault secret set --vault-name <your-keyvault> --name mysql-pass --value <password>
 ```
 
-* [`secret-provider-class.yaml`](charts/petclinic/templates/secret-provider-class.yaml) 파일을 수정
+### Secret Driver Class 구성을 위한 yaml추가
+
+#### Secret Driver Class Manifest 파일 [secretproviderclass](charts/petclinic/templates/secret-provider-class.yaml) 수정.
+
+* `userAssignedIdentityID`에 위 Managed ID의 `clientId`를 입력
+* `tenantID`: 계정의 TenantID 입력
+  * CLI로 확인
+
+  ```bash
+   az account tenant list
+  ```
+
+* `secret-provider-class.yaml` 샘플
 
 ```yaml
 (생략)
 ...
-parameters:
-usePodIdentity: "false"
-useVMManagedIdentity: "true"
-userAssignedIdentityID: "<clientId>"
-keyvaultName: "<your-keyvault>"
-cloudName: ""
-objects:  |
-  array:
-    - |
-      objectName: mysql-url
-      objectType: secret                     
-      objectVersion: ""                    
-    - |
+spec:
+  provider: azure
+  secretObjects:                             
+  - data:
+    - key: mysql-url                          
+      objectName: mysql-url     
+    - key: mysql-user                          
       objectName: mysql-user
-      objectType: secret
-      objectVersion: ""
-    - |
-      objectName: mysql-pass
-      objectType: secret
-      objectVersion: "" 
-tenantId: "<your-tenant-id>"
-```
+    - key: mysql-pass                          
+      objectName: mysql-pass                      
+    secretName: dbsecret                    
+    type: Opaque  
 
-* 생성된 `SecretProviderClass`를 `Volume`으로 Mount. 이 항목은 value.yaml에서 정의할 수 있음. 이 프로젝트는 스테이지계만 KeyVault를 사용하므로 `values-stage.yaml`에 정의함.
+  parameters:
+    usePodIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "<clientId>"
+    keyvaultName: "<your-keyvault>"
+    cloudName: ""
+    objects:  |
+      array:
+        - |
+          objectName: mysql-url
+          objectType: secret                     
+          objectVersion: ""                    
+        - |
+          objectName: mysql-user
+          objectType: secret
+          objectVersion: ""
+        - |
+          objectName: mysql-pass
+          objectType: secret
+          objectVersion: "" 
+    tenantId: "<your-tenant-id>"
+```  
+
+
+* 생성된 `SecretProviderClass`를 `Volume`으로 Mount. 이 항목은 values.yaml에서 정의할 수 있음. 이 프로젝트는 스테이지계만 KeyVault를 사용하므로 `values-stage.yaml`에 정의함.
 
 * Volume, Volume Mount 설정 (values-stage.yaml)
 
 ```yaml
 (생략)
 
-```yaml
 ...
  volumes:
   - name: secrets-store01-inline
@@ -415,7 +460,7 @@ tenantId: "<your-tenant-id>"
     readOnly: true
 ```
 
-* DB암호 환경변수 설정 (values-stage.yaml)
+* mySQL 사용자 및 비밀번호는 위 Secret Provider Class로 생성된 `dbsecret` Object 사용 (values-stage.yaml)
   
 ```yaml
 ...
@@ -439,25 +484,26 @@ env
 ### Ingress 생성
 
 * 스테이지 환경만 Ingress생성 및 Application Gateway 연결
-* `deployment`에 `ingress`용 `annotations`인 `kubernetes.io/ingress.class: azure/application-gateway` 추가 (values-stage.yaml)
+* `deployment`에 `ingress`용 `annotations`인 `kubernetes.io/ingress.class: azure/application-gateway` 추가 
+  * `values-stage.yaml` 샘플
 
-```yaml 
-api-gateway:
-  env:
-  - name: SPRING_PROFILES_ACTIVE         
-    value: "stage"     
-  ingress:
-    enabled: true
-    annotations: 
-      kubernetes.io/ingress.class: azure/application-gateway
-    hosts:
-      - host:
-        paths:
-          - path: /
-            pathType: Exact
-    tls: []
+  ```yaml
+  api-gateway:
+    env:
+    - name: SPRING_PROFILES_ACTIVE         
+      value: "stage"     
+    ingress:
+      enabled: true
+      annotations: 
+        kubernetes.io/ingress.class: azure/application-gateway
+      hosts:
+        - host:
+          paths:
+            - path: /
+              pathType: Exact
+      tls: []
 
-```
+  ```
 
 ## Azure AppConfiguration 설정
 
@@ -488,18 +534,17 @@ spring:
 
 ### 완성된 Stage용 value file 확인
 
-[values-stage.yaml](./charts/petclinic/values-stage.yaml)
+* [values-stage.yaml](./charts/petclinic/values-stage.yaml)
 
 ### Helm Chart로 스테이지용 앱 배포
 
-`helm upgrade --install <릴리즈명> <차트> <환경별 구성정보>`
+`helm upgrade --install <릴리즈명> <차트> -f <환경별 구성정보>`
 
 > [!IMPORTANT]
 > 
 > 가장 나중에 선언된 선언 값이 우선순위가 높고 Overriding됨.
 > 빈 값으로 선언하지 않도록 주의!
-
-`# helm upgrade --install <릴리즈명> <차트> <환경별 구성정보> <리전별 구성정보> ...<...구성정보`
+> `helm upgrade --install <릴리즈명> <차트> -f <환경별 구성정보> -f <리전별 구성정보> ...-f <구성정보>`
 
 ```sh
 ns spring-petclinic-stage
@@ -508,5 +553,4 @@ helm upgrade --install petclinic-stage charts/petclinic -f charts/petclinic/valu
 
 ## Azure DevOps를 이용한 CI/CD는 별도 프로젝트 참고
 
-[Azure DevOps를 이용한 CI/CD](https://github.com/HakjunMIN/spring-petclinic-monolith)
-
+* [Azure DevOps를 이용한 CI/CD](https://github.com/HakjunMIN/spring-petclinic-monolith)
