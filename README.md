@@ -47,7 +47,7 @@
   * ACR 생성 후 Attach가능
 
     ```bash
-      az aks update -n <your-cluster> -g <your-resource-group> --attach-acr <acr-name>
+      az aks update -n aks-gyumipark -g <your-resource-group> --attach-acr spreg
     ```
 
 > [!NOTE]
@@ -98,18 +98,18 @@ kubectl get nodes
 ```bash
 mvn clean package -DskipTests 
 
-export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
-cd spring-petclinic-customers-service && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-customers-service . && cd .. 
-cd spring-petclinic-vets-service && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-vets-service . && cd .. 
-cd spring-petclinic-visits-service && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-visits-service . && cd .. 
-cd spring-petclinic-api-gateway && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-api-gateway . && cd .. 
+export REPOSITORY_PREFIX=spreg.azurecr.io/petclinic/gyumipark
+cd spring-petclinic-customers-service && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-customers-service . && cd ..
+cd spring-petclinic-vets-service && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-vets-service . && cd ..
+cd spring-petclinic-visits-service && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-visits-service . && cd ..
+cd spring-petclinic-api-gateway && docker build -t ${REPOSITORY_PREFIX}/spring-petclinic-cloud-api-gateway . && cd ..
 
 ```
 
 혹은 `spring-boot:build-image` goal 사용
   
 ```bash
-export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
+export REPOSITORY_PREFIX=spreg.azurecr.io/petclinic/gyumipark
 mvn spring-boot:build-image -DREPOSITORY_PREFIX=${REPOSITORY_PREFIX} -DskipTests
 ```
 
@@ -117,8 +117,8 @@ mvn spring-boot:build-image -DREPOSITORY_PREFIX=${REPOSITORY_PREFIX} -DskipTests
 
 ```bash
 
-export REPOSITORY_PREFIX=<your-registry>.azurecr.io/petclinic
-az acr login --name <your-regtistry>
+export REPOSITORY_PREFIX=spreg.azurecr.io/petclinic/gyumipark
+az acr login --name spreg
 
 docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-customers-service:latest
 docker push ${REPOSITORY_PREFIX}/spring-petclinic-cloud-vets-service:latest
@@ -234,22 +234,22 @@ helm template petclinic-dev charts/petclinic --namespace spring-petclinic
 ```yaml
 vets:
   image:
-    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-vets-service
+    repository: spreg.azurecr.io/petclinic/spring-petclinic-cloud-vets-service
     tag: latest
  
 customers:
   image:
-    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-customers-service
+    repository: spreg.azurecr.io/petclinic/spring-petclinic-cloud-customers-service
     tag: latest 
 
 visits:
   image:
-    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-visits-service
+    repository: spreg.azurecr.io/petclinic/spring-petclinic-cloud-visits-service
     tag: latest
 
 api-gateway:
   image:
-    repository: <your-registry>.azurecr.io/petclinic/spring-petclinic-cloud-api-gateway
+    repository: spreg.azurecr.io/petclinic/spring-petclinic-cloud-api-gateway
     tag: latest
 ...
 ```  
@@ -257,6 +257,9 @@ api-gateway:
 ### Helm Chart로 앱 배포
 
 ```sh
+# templates 폴더에 있는 secret-provider-class.yaml 삭제
+Ξ petclinic/templates git:(master) ▶ rm secret-provider-class.yaml
+
 # helm upgrade --install <릴리즈명> <차트>
 helm upgrade --install petclinic-release charts/petclinic --namespace spring-petclinic
 ```
