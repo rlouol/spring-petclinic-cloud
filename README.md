@@ -2,12 +2,18 @@
 
 ## 필요도구
 
-* git
 * Github 계정 (or Azure DevOps 계정)
 * Azure 계정 및 구독
-* kubectl
-* helm
-* mvn
+
+* [Git client](https://git-scm.com/downloads)
+* [Azure Cli](https://docs.microsoft.com/ko-kr/cli/azure/install-azure-cli) 2.3 이상
+* [kubectl](https://kubernetes.io/ko/docs/tasks/tools/install-kubectl-linux/)
+* [Helm](https://helm.sh/ko/docs/intro/install/)
+* [Maven](https://maven.apache.org/install.html)
+* [JDK](https://learn.microsoft.com/en-us/java/openjdk/download)
+* [Docker](https://www.docker.com/products/docker-desktop/)
+* IDE (VS Code, IntelliJ .. )
+* OSX, WSL, Linux
 * bash 설정
   
   ```bash
