@@ -106,6 +106,11 @@ cd spring-petclinic-api-gateway && docker build -t ${REPOSITORY_PREFIX}/spring-p
 
 ```
 
+> [!IMPORTANT]
+>
+> OSX M1 맥북에서 Docker 빌드할 때 ` --platform linux/amd64` 파라미터를 반드시 넣어야 함.
+> 혹은 `buildx`를 통해 멀티 플랫폼 빌드 수행 https://docs.docker.com.xy2401.com/buildx/working-with-buildx/
+
 혹은 `spring-boot:build-image` goal 사용
   
 ```bash
@@ -278,6 +283,20 @@ helm upgrade --install petclinic-release charts/petclinic --namespace spring-pet
 kubectl run curl --rm -i --tty --image=curlimages/curl:7.73.0 -- sh
 $ curl http://customers-service.spring-petclinic.svc.cluster.local:8080/owners
 ```
+
+* 서비스 테스트
+
+  * api-gateway의 EXTERNAL-IP로 웹브라우저에서 테스트
+
+  ```bash
+  kubectl get svc
+  NAME                          TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)        AGE
+  api-gateway                   LoadBalancer   10.0.40.187    20.196.249.134   80:30807/TCP   44h
+  customers-db-mysql            ClusterIP      10.0.159.153   <none>           3306/TCP       44h
+  customers-db-mysql-headless   ClusterIP      None           <none>           3306/TCP       44h
+  ...
+
+  ```
 
 ## 스테이지계 환경 구성
 
