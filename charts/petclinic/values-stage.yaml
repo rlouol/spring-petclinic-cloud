@@ -27,7 +27,7 @@ customers:
         name: dbsecret
         key: mysql-pass  
   - name: APPINSIGHTS_INSTRUMENTATIONKEY
-    value: "f8c35d3c-98fe-48c5-9a42-a3317930260a"  
+    value: "d5bd3446-3ad0-48c3-9a61-10c9c786490f"  
   - name: SPRING_PROFILES_ACTIVE         
     value: "stage" 
 

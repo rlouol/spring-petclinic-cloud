@@ -69,7 +69,7 @@ spring:
       appconfiguration:
         enabled: true
         stores:
-          - connection-string: "Endpoint=https://springappconfig.azconfig.io;Id=urfc-lq-s0:hv6xtBHrPOMfbk72GhD0;Secret=ZFZIiP2w44M8R8lTXTiYPQ7woXltzwhwfCIEv3yw7Kg="
+          - connection-string: "Endpoint=https://appconfig-gyumipark.azconfig.io;Id=jCgB-lq-s0:+KL32ui1CILjBZuMn/aI;Secret=urPP69JwDSTXC3Pbxw2Cp+Wsh2g61bLi2RaghMquWj4="
             selects:
               - label-filter: ',${spring.profiles.active}'
   

@@ -315,11 +315,11 @@ kubectl create namespace spring-petclinic-stage
 * `service-instance-db` DB 생성
 
 ```sh
-az mysql flexible-server db create --resource-group <your-resource-group> --server-name <your-mysql> --database-name service_instance_db
+az mysql flexible-server db create --resource-group gmktguest-rg --server-name flexible-db-gyumipark --database-name service_instance_db
 
 ```
 
-* Portal에서 `<your-mysql>` > Settings > Connect > Connect from your app > JDBC용 URL 참고
+* Portal에서 `flexible-db-gyumipark` > Settings > Connect > Connect from your app > JDBC용 URL 참고
 
 > [!IMPORTANT]
 >
@@ -331,7 +331,7 @@ az mysql flexible-server db create --resource-group <your-resource-group> --serv
 ### Application Insights
 
 * Portal > Application Insights > Create. Resource Mode를 `Workspace-base`로 설정
-* `Instrumentation Key` 필요
+* `Instrumentation Key` 필요 => d5bd3446-3ad0-48c3-9a61-10c9c786490f
 * 각 마이크로서비스 별 `pom.xml`에 아래 설정 추가
 
 ```xml
@@ -366,7 +366,7 @@ public class VetsServiceApplication {
 
   env:
     - name: APPINSIGHTS_INSTRUMENTATIONKEY
-      value: <your-instrumentation-key>
+      value: d5bd3446-3ad0-48c3-9a61-10c9c786490f
   ```
 
 ## Azure KeyVault
@@ -374,8 +374,8 @@ public class VetsServiceApplication {
 * AKS에서 Secret Store CSI Driver와 Managed ID를 활성화 시킴
 
 ```bash
-export aks=<your-cluster>
-export rg=<your-resource-group>
+export aks=aks-gyumipark
+export rg=gmktguest-rg
 az aks enable-addons -a azure-keyvault-secrets-provider -n $aks -g $rg
 az aks update -n $aks -g $rg --enable-managed-identity
 ```
@@ -388,16 +388,16 @@ az aks update -n $aks -g $rg --enable-managed-identity
   
 ```json
  "identity": {
-        "clientId": "90e35a2c-3a2e-495a-88a6-9ca1cd5d710a",
-        "objectId": "668c37cb-ee54-44bf-bc42-03e420240b5d",
-        "resourceId": "/subscriptions/2f2d6dff-65ac-45fc-9180-bad1e786a763/resourcegroups/~~~~"
+"clientId": "daac1b02-9c96-4f81-a004-b0b373446520",
+"objectId": "18e078be-ea31-41d0-a305-6ff78da875ac",
+"resourceId": "/subscriptions/12f55838-824f-4f06-a39a-e452ff7fdb7a/resourcegroups/MC_gmktguest-rg_aks-gyumipark_koreacentral/providers/Microsoft.ManagedIdentity/userAssignedIdentities/azurekeyvaultsecretsprovider-aks-gyumipark"
      }
 ```
 
 * KeyVault 서비스에 secret permission을 위 AKS managed ID에 할당함
   
 ```bash
-  az keyvault set-policy -n <your-keyvault> --secret-permissions get --object-id 668c37cb-ee54-44bf-bc42-03e420240b5d
+az keyvault set-policy -n kv-gyumipark --secret-permissions get --object-id 18e078be-ea31-41d0-a305-6ff78da875ac
 ```
 
 ### mySQL 계정/비밀번호 `secret`으로 저장
@@ -405,9 +405,9 @@ az aks update -n $aks -g $rg --enable-managed-identity
 * KeyVault에 아래와 같이 secret을 저장함
 
 ```sh
-az keyvault secret set --vault-name <your-keyvault> --name mysql-user --value <user>
+az keyvault secret set --vault-name kv-gyumipark --name mysql-user --value gyumipark
 
-az keyvault secret set --vault-name <your-keyvault> --name mysql-pass --value <password>
+az keyvault secret set --vault-name kv-gyumipark --name mysql-pass --value 1q2w3e4r!
 ```
 
 ### Secret Driver Class 구성을 위한 yaml추가
@@ -441,8 +441,8 @@ spec:
   parameters:
     usePodIdentity: "false"
     useVMManagedIdentity: "true"
-    userAssignedIdentityID: "<clientId>"
-    keyvaultName: "<your-keyvault>"
+    userAssignedIdentityID: "daac1b02-9c96-4f81-a004-b0b373446520"
+    keyvaultName: "kv-gyumipark"
     cloudName: ""
     objects:  |
       array:
@@ -454,7 +454,7 @@ spec:
           objectName: mysql-pass
           objectType: secret
           objectVersion: "" 
-    tenantId: "<your-tenant-id>"
+    tenantId: "ed10ace5-fd47-4660-bc91-7c764a302f4f" # Contoso
 ```  
 
 * 생성된 `SecretProviderClass`를 `Volume`으로 Mount. 이 항목은 values.yaml에서 정의할 수 있음. 이 프로젝트는 스테이지계만 KeyVault를 사용하므로 `values-stage.yaml`에 정의함.
@@ -497,7 +497,7 @@ env
 
 ### Application Gateway 생성
 
-* `<your-kubernetes>` > Settings> Networking > Application Gateway ingress controller Enable ingress controller > 신규로 생성
+* `aks-gyumipark` > Settings> Networking > Application Gateway ingress controller Enable ingress controller > 신규로 생성
 
 ### Ingress 생성
 
@@ -547,7 +547,7 @@ spring:
       appconfiguration:
         enabled: true
         stores:
-          - connection-string: "<your-appconfigration-connection-string>"
+          - connection-string: "Endpoint=https://appconfig-gyumipark.azconfig.io;Id=jCgB-lq-s0:+KL32ui1CILjBZuMn/aI;Secret=urPP69JwDSTXC3Pbxw2Cp+Wsh2g61bLi2RaghMquWj4="
 ```
 
 ### 완성된 Stage용 value file 확인
